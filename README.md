@@ -53,6 +53,17 @@ AI dependencies are optional for basic project management. `requirements.lock.tx
 
 For synthetic demo accounts, run `python -m backend.demo`. It generates and prints a temporary password and refuses to overwrite an existing demo. Benchmark identities are never imported as login accounts.
 
+## Role-specific workspaces
+
+After sign-in, the interface uses the user's role in the selected project (administrators retain system-wide access). Switching projects updates the workspace.
+
+- **Admin — Administration:** opens user administration and system/model configuration, with developer profile management under Team.
+- **Manager — Project management:** opens project progress and assignment readiness, with a paginated Triage queue of open reports and a team-workload shortcut.
+- **Developer — Developer workspace:** opens My work, showing personal workload, skills, recent verified resolutions, and a searchable list restricted to that user's assignments in the current project. Bugs still provides shared project visibility.
+- **Reporter — Reporter workspace:** opens Report bug, with access to project reports, overview, notifications, and settings.
+
+Each workspace has a labelled identity, tailored navigation, and a distinct accent. Existing API role permissions remain authoritative. Reinstall the rebuilt VSIX to use this update.
+
 ## Implemented features
 
 - Registration/verification, email changes requiring the current password, preferences, bcrypt, JWT sessions, eight-hour idle expiry, logout, and database-backed authentication throttling.

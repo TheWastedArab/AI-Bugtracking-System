@@ -215,9 +215,63 @@ function showAuth(mode = "login") {
       actions.append(button(label, () => showAuth(name), true));
   main.append(actions);
 }
+const workspaces = {
+  admin: {
+    title: "Administration",
+    summary: "Manage accounts, developer profiles, and system configuration.",
+    home: "Admin",
+    pages: [
+      "Admin",
+      "Team",
+      "Overview",
+      "Bugs",
+      "Report bug",
+      "Notifications",
+      "Settings",
+    ],
+  },
+  manager: {
+    title: "Project management",
+    summary:
+      "Review project progress, prioritize reports, and coordinate assignments.",
+    home: "Overview",
+    pages: [
+      "Overview",
+      "Triage queue",
+      "Bugs",
+      "Team",
+      "Report bug",
+      "Notifications",
+      "Settings",
+    ],
+  },
+  developer: {
+    title: "Developer workspace",
+    summary:
+      "Focus on your assigned bugs, track your workload, and record your progress.",
+    home: "My work",
+    pages: [
+      "My work",
+      "Bugs",
+      "Report bug",
+      "Team",
+      "Notifications",
+      "Settings",
+    ],
+  },
+  reporter: {
+    title: "Reporter workspace",
+    summary:
+      "Describe issues, check possible duplicates, and follow project reports.",
+    home: "Report bug",
+    pages: ["Report bug", "Bugs", "Overview", "Notifications", "Settings"],
+  },
+};
 async function boot() {
   try {
+    const previousUser = state.user?.id;
     state.user = await api("/auth/me");
+    if (previousUser !== state.user.id) state.page = null;
     state.projects = await api("/projects");
     if (!state.projects.some((p) => p.id === state.project))
       state.project = state.projects[0]?.id ?? null;
@@ -239,19 +293,23 @@ async function boot() {
 }
 async function render() {
   refreshDashboard = null;
+  const version = ++viewVersion;
+  const members = state.project ? await api(projectPath() + "/members") : [];
+  if (version !== viewVersion) return;
+  state.role =
+    state.user.global_role === "admin"
+      ? "admin"
+      : members.find((member) => member.user_id === state.user.id)?.role ||
+        (state.user.global_role === "manager" ? "manager" : "reporter");
+  const workspace = workspaces[state.role];
+  if (!workspace.pages.includes(state.page)) state.page = workspace.home;
+  app.dataset.role = state.role;
   app.replaceChildren();
   const header = el("header"),
     brand = el("div");
-  brand.append(
-    el("h1", "Bug Triage"),
-    el("p", "REPORT · UNDERSTAND · RESOLVE"),
-  );
+  brand.append(el("h1", workspace.title), el("p", workspace.summary));
   header.append(brand);
-  const identity = el(
-    "div",
-    state.user.name + " · " + state.user.global_role,
-    "identity",
-  );
+  const identity = el("div", state.user.name + " · " + state.role, "identity");
   header.append(
     identity,
     button(
@@ -266,15 +324,7 @@ async function render() {
   app.append(header);
   const nav = el("nav");
   nav.setAttribute("aria-label", "Workspace sections");
-  for (const page of [
-    "Overview",
-    "Bugs",
-    "Report bug",
-    "Team",
-    "Notifications",
-    "Settings",
-    ...(state.user.global_role === "admin" ? ["Admin"] : []),
-  ]) {
+  for (const page of workspace.pages) {
     const b = button(
       page,
       async () => {
@@ -310,6 +360,7 @@ async function render() {
   );
   picker.onchange = async () => {
     state.project = Number(picker.value);
+    state.page = null;
     await render();
   };
   row.append(label, picker);
@@ -318,7 +369,14 @@ async function render() {
   main.append(row, el("h2", state.page));
   try {
     if (
-      ["Overview", "Bugs", "Report bug", "Team"].includes(state.page) &&
+      [
+        "Overview",
+        "Bugs",
+        "Report bug",
+        "Team",
+        "My work",
+        "Triage queue",
+      ].includes(state.page) &&
       !state.project
     ) {
       main.append(
@@ -330,6 +388,8 @@ async function render() {
     }
     await {
       Overview: overview,
+      "My work": myWork,
+      "Triage queue": triageQueue,
       Bugs: bugs,
       "Report bug": report,
       Team: team,
@@ -353,6 +413,26 @@ function projectForm(main) {
   form.querySelector("input").focus();
 }
 async function overview(main) {
+  if (state.role === "manager") {
+    const actions = el("section", undefined, "role-card");
+    actions.append(
+      el("h3", "Coordinate your team"),
+      el("p", "Review incoming bugs and team capacity before assigning work."),
+      button("Review triage queue", async () => {
+        state.page = "Triage queue";
+        await render();
+      }),
+      button(
+        "Review team workload",
+        async () => {
+          state.page = "Team";
+          await render();
+        },
+        true,
+      ),
+    );
+    main.append(actions);
+  }
   const project = state.project,
     region = el("section");
   region.setAttribute("aria-label", "Project dashboard");
@@ -423,7 +503,95 @@ async function overview(main) {
     );
   }
 }
-async function bugs(main) {
+async function myWork(main) {
+  const profiles = await api(projectPath() + "/profiles");
+  const mine = profiles.find((item) => item.profile.user_id === state.user.id);
+  if (mine) {
+    const card = el("section", undefined, "role-card");
+    card.append(
+      el("h3", "Your workload"),
+      el(
+        "p",
+        `${mine.workload} active bugs / ${mine.profile.capacity} capacity · ${mine.profile.availability}`,
+      ),
+      el(
+        "p",
+        "Skills: " +
+          (mine.profile.skills.join(", ") ||
+            "Ask an administrator to add your skills."),
+      ),
+      el("p", `${mine.history.length} recent verified resolutions`),
+    );
+    main.append(card);
+  }
+  main.append(
+    el("h3", "Assigned to you"),
+    el(
+      "p",
+      "This list only shows your assignments in the selected project. Use Bugs to browse the team's reports.",
+      "muted",
+    ),
+  );
+  await bugs(main, true);
+}
+async function triageQueue(main) {
+  main.append(
+    el(
+      "p",
+      "Review open reports, choose an owner, and confirm severity. Open a report to see assignment suggestions.",
+      "muted",
+    ),
+  );
+  const list = el("section");
+  main.append(list);
+  let offset = 0;
+  const load = async () => {
+    const rows = await api(
+      projectPath() + "/bugs?status=Open&offset=" + offset,
+    );
+    list.replaceChildren(
+      table(
+        ["Report", "Severity", "Assignment"],
+        rows.map((bug) => [
+          button(
+            "#" + bug.id + " " + bug.title,
+            () => detail(main, bug.id),
+            true,
+          ),
+          bug.severity,
+          bug.assignee_id ? "Assigned · #" + bug.assignee_id : "Needs an owner",
+        ]),
+      ),
+    );
+    if (!rows.length) list.append(notice("No open reports to triage."));
+    const controls = el("div", undefined, "actions");
+    if (offset)
+      controls.append(
+        button(
+          "Previous",
+          async () => {
+            offset -= 50;
+            await load();
+          },
+          true,
+        ),
+      );
+    if (rows.length === 50)
+      controls.append(
+        button(
+          "Next",
+          async () => {
+            offset += 50;
+            await load();
+          },
+          true,
+        ),
+      );
+    list.append(controls);
+  };
+  await load();
+}
+async function bugs(main, assignedToMe = false) {
   const form = el("form"),
     row = el("div", undefined, "row");
   form.append(row);
@@ -444,7 +612,8 @@ async function bugs(main) {
     "Critical",
     "Unclassified",
   ]);
-  field(row, "Assignee ID", "assignee_id", "number", "", false);
+  if (!assignedToMe)
+    field(row, "Assignee ID", "assignee_id", "number", "", false);
   field(
     form,
     "Reported from (UTC)",
@@ -469,6 +638,7 @@ async function bugs(main) {
     for (const [key, value] of Object.entries(current))
       if (value)
         params.set(key, key.startsWith("created_") ? value + ":00Z" : value);
+    if (assignedToMe) params.set("assignee_id", state.user.id);
     params.set("offset", offset);
     const rows = await api(projectPath() + "/bugs?" + params);
     list.replaceChildren(
@@ -957,7 +1127,9 @@ async function settings(main) {
       body.current_password = data.current_password;
     }
     const result = await api("/auth/me", "PATCH", body);
+    const previousUser = state.user?.id;
     state.user = await api("/auth/me");
+    if (previousUser !== state.user.id) state.page = null;
     message(
       result.email_change_pending
         ? "Verification email queued for the new address. Your current email remains active until verification."

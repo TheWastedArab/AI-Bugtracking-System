@@ -249,3 +249,32 @@ input[type="checkbox"] {
     padding: 9px 5px;
   }
 }
+
+/* Role accents supplement the explicit workspace and role labels. */
+#app {
+  --role-accent: #52b8aa;
+}
+#app[data-role="admin"] {
+  --role-accent: #b39ddb;
+}
+#app[data-role="manager"] {
+  --role-accent: #e9b55a;
+}
+#app[data-role="developer"] {
+  --role-accent: #65b5ef;
+}
+header {
+  border-top: 4px solid var(--role-accent);
+}
+.role-card {
+  border-left: 4px solid var(--role-accent);
+  padding: 12px 20px;
+  margin: 18px 0;
+  background: var(--vscode-textBlockQuote-background, #17232d);
+}
+.role-card button {
+  margin: 4px 8px 4px 0;
+}
+.identity {
+  text-transform: capitalize;
+}

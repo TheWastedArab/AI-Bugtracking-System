@@ -29,6 +29,8 @@ const root = path.resolve(__dirname, '..');
     await page.getByLabel('Email address',{exact:true}).fill('admin@example.com');
     await page.getByLabel('Password',{exact:true}).fill(process.env.QA_PASSWORD||'LocalQa123!');
     await page.getByRole('button',{name:'Sign in',exact:true}).click();
+    await page.getByRole('heading',{name:'User administration'}).waitFor();
+    await page.getByRole('button',{name:'Overview',exact:true}).click();
     await page.getByRole('heading',{name:'Assignment readiness'}).waitFor();
     fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
     await page.screenshot({path:path.join(root,'test-results/overview.png'),fullPage:true});
@@ -54,6 +56,30 @@ const root = path.resolve(__dirname, '..');
       await page.getByRole('heading',{name:section,exact:true}).waitFor();
     }
     await page.getByRole('heading',{name:'User administration'}).waitFor();
+    for (const [account, workspace, landing] of [
+      ['manager', 'Project management', 'Overview'],
+      ['developer', 'Developer workspace', 'My work'],
+      ['reporter', 'Reporter workspace', 'Report bug'],
+    ]) {
+      await page.getByRole('button', {name:'Sign out',exact:true}).click();
+      await page.getByLabel('Email address',{exact:true}).fill(account+'@example.com');
+      await page.getByLabel('Password',{exact:true}).fill(process.env.QA_PASSWORD||'LocalQa123!');
+      await page.getByRole('button',{name:'Sign in',exact:true}).click();
+      await page.getByRole('heading',{name:workspace,exact:true}).waitFor();
+      await page.getByRole('heading',{name:landing,exact:true}).waitFor();
+      if (await page.getByRole('button',{name:'Admin',exact:true}).count()) throw new Error('Admin navigation leaked');
+      if (account==='manager') {
+        await page.getByRole('button',{name:'Review triage queue',exact:true}).click();
+        await page.getByRole('heading',{name:'Triage queue',exact:true}).waitFor();
+      }
+      if (account==='developer') {
+        await page.getByRole('heading',{name:'Assigned to you',exact:true}).waitFor();
+        await page.getByRole('button',{name:/QA checkout error/}).first().waitFor();
+        if (await page.getByLabel('Assignee ID',{exact:true}).count()) throw new Error('Personal assignment filter can be overridden');
+        if (await page.getByRole('button',{name:'New project',exact:true}).count()) throw new Error('Developer project creation leaked');
+      }
+      await page.screenshot({path:path.join(root,'test-results',account+'-workspace.png'),fullPage:true});
+    }
     if(errors.length)throw new Error(errors.join('\n'));
     console.log('Webview smoke passed: login, overview, duplicate check, submit, assign, transition, comment, team, notifications, settings, admin.');
   } finally {await browser.close();}
