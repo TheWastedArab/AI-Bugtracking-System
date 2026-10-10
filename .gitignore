@@ -6,3 +6,10 @@ htmlcov/
 *.db
 .env
 *.egg-info/
+.mail-preview/
+artifacts/
+data/
+node_modules/
+extension/out/
+*.vsix
+test-results/

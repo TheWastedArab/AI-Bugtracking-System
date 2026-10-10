@@ -1,0 +1,93 @@
+{
+  "model": "TF-IDF + SVM/RandomForest/NaiveBayes majority vote",
+  "train_count": 105558,
+  "test_count": 27696,
+  "split": "chronological 80/20; exact-text duplicates removed; train outcomes known before cutoff",
+  "accuracy": 0.7052642980935875,
+  "classification_report": {
+    "Low": {
+      "precision": 0.26512968299711814,
+      "recall": 0.11400247831474597,
+      "f1-score": 0.15944540727902945,
+      "support": 2421.0
+    },
+    "Medium": {
+      "precision": 0.8058841240483462,
+      "recall": 0.8614252873563218,
+      "f1-score": 0.8327296162136937,
+      "support": 21750.0
+    },
+    "High": {
+      "precision": 0.14986853637160386,
+      "recall": 0.06716417910447761,
+      "f1-score": 0.09275834011391375,
+      "support": 2546.0
+    },
+    "Critical": {
+      "precision": 0.1545253863134658,
+      "recall": 0.3575076608784474,
+      "f1-score": 0.2157829839704069,
+      "support": 979.0
+    },
+    "accuracy": 0.7052642980935875,
+    "macro avg": {
+      "precision": 0.34385193243263357,
+      "recall": 0.3500249014134982,
+      "f1-score": 0.32517908689426095,
+      "support": 27696.0
+    },
+    "weighted avg": {
+      "precision": 0.6752853952697335,
+      "recall": 0.7052642980935875,
+      "f1-score": 0.6840446547843522,
+      "support": 27696.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      276,
+      2008,
+      80,
+      57
+    ],
+    [
+      712,
+      18736,
+      829,
+      1473
+    ],
+    [
+      45,
+      1945,
+      171,
+      385
+    ],
+    [
+      8,
+      560,
+      61,
+      350
+    ]
+  ],
+  "labels": [
+    "Low",
+    "Medium",
+    "High",
+    "Critical"
+  ],
+  "batch_seconds": 0.9777017000014894,
+  "cv_macro_f1": [
+    0.3229795349817886,
+    0.3275430120067167,
+    0.332283262990871,
+    0.3303510660673832,
+    0.3225917818178048,
+    0.3362241267309437,
+    0.33230180368781825,
+    0.34756795731480283,
+    0.3325179490719063,
+    0.3294959354547436
+  ],
+  "target_accuracy": 0.85,
+  "title_only_dataset": true
+}

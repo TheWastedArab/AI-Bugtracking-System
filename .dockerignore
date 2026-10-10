@@ -1,0 +1,9 @@
+.git
+.venv
+**/__pycache__
+extension/node_modules
+data
+artifacts
+*.db
+.env
+.mail-preview
