@@ -1,0 +1,38 @@
+name: Backend checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: triage
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: triage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U triage"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+      - run: python -m pip install -r requirements.lock.txt
+      - run: python -m pytest --cov=backend --cov-fail-under=70
+      - name: Check PostgreSQL migration
+        env:
+          DATABASE_URL: postgresql+psycopg://triage:ci-only-password@localhost:5432/triage
+        run: |
+          python -m alembic upgrade head
+          python -m alembic check
+          python -m alembic downgrade base
+          python -m alembic upgrade head
