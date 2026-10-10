@@ -1,0 +1,33 @@
+{
+  "concurrency": 50,
+  "results": {
+    "search": {
+      "requests": 50,
+      "successes": 50,
+      "mean_seconds": 0.6230429900012677,
+      "p95_seconds": 0.834932600002503,
+      "baseline_mean_seconds": 0.045181119994958864,
+      "mean_degradation_percent": 1278.9896976232208,
+      "requests_per_second": 48.48534215344077
+    },
+    "duplicates": {
+      "requests": 50,
+      "successes": 50,
+      "mean_seconds": 1.2891100579983321,
+      "p95_seconds": 1.5853078000072856,
+      "baseline_mean_seconds": 0.08318731999606825,
+      "mean_degradation_percent": 1449.6472996837263,
+      "requests_per_second": 29.806851009339297
+    },
+    "submit": {
+      "requests": 50,
+      "successes": 50,
+      "mean_seconds": 1.2429064599983395,
+      "p95_seconds": 1.80884180002613,
+      "baseline_mean_seconds": 0.08155761999660172,
+      "mean_degradation_percent": 1423.9611700907017,
+      "requests_per_second": 22.24916843731444
+    }
+  },
+  "note": "Client connection setup included; local machine and SQLite results are not production SLA evidence."
+}

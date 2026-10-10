@@ -1,7 +1,9 @@
 from datetime import timedelta
+import os
+import uuid
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from backend.db import Base, get_db
@@ -13,7 +15,20 @@ from backend.security import hash_password
 @pytest.fixture
 def setup(monkeypatch):
     monkeypatch.setenv('JWT_SECRET', 'test-only-secret-that-is-at-least-32-characters')
-    engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
+    monkeypatch.setenv('SEVERITY_MODEL', 'artifacts/nonexistent-test-model.joblib')
+    monkeypatch.delenv('SEMANTIC_MODEL_PATH', raising=False)
+    database_url = os.getenv('TEST_DATABASE_URL')
+    if database_url:
+        schema = 'test_' + uuid.uuid4().hex
+        owner = create_engine(database_url)
+        with owner.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA {schema}'))
+        engine = create_engine(database_url, connect_args={'options': f'-csearch_path={schema}'})
+    else:
+        engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
+        @event.listens_for(engine, 'connect')
+        def foreign_keys(connection, _):
+            connection.execute('PRAGMA foreign_keys=ON')
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     def database():
@@ -37,6 +52,10 @@ def setup(monkeypatch):
         yield client, headers, project, factory
     app.dependency_overrides.clear()
     engine.dispose()
+    if database_url:
+        with owner.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA {schema} CASCADE'))
+        owner.dispose()
 
 
 def create_bug(client, headers, project):

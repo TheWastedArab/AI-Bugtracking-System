@@ -1,0 +1,50 @@
+{
+  "name": "capstone-bug-triage",
+  "displayName": "Bug Triage",
+  "description": "Report, triage and track bugs with a private local AI backend.",
+  "version": "1.0.0",
+  "publisher": "capstone-team",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheWastedArab/AI-Bugtracking-System.git"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onCommand:bugTriage.open"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "bugTriage.open",
+        "title": "Bug Triage: Open Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "Bug Triage",
+      "properties": {
+        "bugTriage.apiUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Your trusted Bug Triage API. HTTPS is required except on localhost."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "@vscode/vsce": "^3.3.0"
+  }
+}

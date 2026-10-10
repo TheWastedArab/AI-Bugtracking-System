@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: triage
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage"]
+      interval: 5s
+      retries: 20
+  migrate:
+    build: .
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    environment: &backend-env
+      DATABASE_URL: postgresql+psycopg://triage:${POSTGRES_PASSWORD}@db:5432/triage
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      MAIL_TRANSPORT: preview
+      CLAMAV_HOST: clamav
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    build: .
+    environment: *backend-env
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["./artifacts:/app/artifacts"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  worker:
+    build: .
+    command: ["python", "-m", "backend.worker"]
+    environment: *backend-env
+    volumes: ["mail-preview:/app/.mail-preview"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  trainer:
+    profiles: [ai]
+    build: {context: ., dockerfile: Dockerfile.ai}
+    environment: *backend-env
+    volumes: ["./artifacts:/app/artifacts"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  clamav:
+    image: clamav/clamav:stable
+    volumes: ["clamav-data:/var/lib/clamav"]
+  ntfy:
+    profiles: [push]
+    image: binwiederhier/ntfy:latest
+    command: serve
+    environment:
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_BEHIND_PROXY: "true"
+    volumes: ["ntfy-data:/var/lib/ntfy"]
+  proxy:
+    profiles: [https]
+    image: caddy:2
+    ports: ["443:443", "80:80"]
+    environment: {DOMAIN: "${DOMAIN:-localhost}"}
+    volumes: ["./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data"]
+    depends_on: [api]
+volumes:
+  database:
+  mail-preview:
+  clamav-data:
+  ntfy-data:
+  caddy-data:

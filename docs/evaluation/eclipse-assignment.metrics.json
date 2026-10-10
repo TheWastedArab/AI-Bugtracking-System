@@ -1,0 +1,18 @@
+{
+  "model": "CNN-LSTM",
+  "train_count": 11486,
+  "test_count": 2947,
+  "developer_classes": 233,
+  "top_k_accuracy": {
+    "1": 0.15880556498133697,
+    "3": 0.2643366135052596,
+    "5": 0.336613505259586
+  },
+  "unseen_assignee_test_count": 642,
+  "simulated_mnr": 78.32405836443841,
+  "random_expected_mnr": 141.48829317950458,
+  "mnr_reduction": 0.4464272866372797,
+  "simulation": "rank minus one; unseen assignees require exhausting the candidate list; not observed reassignments",
+  "split": "chronological with exact-text deduplication and outcome cutoff",
+  "epochs": 6
+}
